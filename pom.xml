@@ -10,6 +10,9 @@
         <module>demo_dubbo_serviceA</module>
         <module>demo_dubbo_serverB</module>
         <module>demo_design_pattern</module>
+        <module>demo_api</module>
+        <module>demo_jvm</module>
+        <module>demo_io</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>

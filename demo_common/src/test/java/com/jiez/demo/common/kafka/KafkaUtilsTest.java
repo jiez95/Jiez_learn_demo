@@ -3,7 +3,6 @@ package com.jiez.demo.common.kafka;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
@@ -16,8 +15,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class KafkaUtilsTest {
 
     @Test
-    public void test() throws InterruptedException {
-        new KafkaUtils().kafkaClientConsumer();
+    public void test() throws InterruptedException, ClassNotFoundException {
+//        new KafkaUtils().kafkaClientConsumer();
+        Thread.currentThread().getContextClassLoader().loadClass("com.jiez.demo.common.utils.OkHttpUtil1");
     }
 
 }

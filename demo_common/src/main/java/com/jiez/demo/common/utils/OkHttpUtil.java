@@ -1,4 +1,4 @@
-package com.lonely.utils;
+package com.jiez.demo.common.utils;
 
 import okhttp3.*;
 import org.slf4j.Logger;
