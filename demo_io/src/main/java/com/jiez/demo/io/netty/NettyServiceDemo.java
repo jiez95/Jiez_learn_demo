@@ -1,20 +1,17 @@
 package com.jiez.demo.io.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.util.CharsetUtil;
 
 
 /**
  * @author : jiez
  * @date : 2021/5/27 20:17
  */
-public class NettyServiceDemo1 {
+public class NettyServiceDemo {
 
     public static void main(String[] args) throws Exception {
 
@@ -48,7 +45,7 @@ public class NettyServiceDemo1 {
                         protected void initChannel(SocketChannel ch) throws Exception {
                             //对workerGroup的SocketChannel设置处理器
                             ch.pipeline()
-                                    .addLast(new NettyServerHandlerDemo1());
+                                    .addLast(new NettyServerHandlerDemo());
                         }
                     });
 

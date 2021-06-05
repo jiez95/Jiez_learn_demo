@@ -18,13 +18,11 @@ import java.util.Scanner;
  * @author : jiez
  * @date : 2021/5/27 20:54
  */
-public class NettyClientDemo4 {
+public class NettyClientDemo {
 
     public static void main(String[] args) throws Exception {
         //客户端需要一个事件循环组
         EventLoopGroup group = new NioEventLoopGroup();
-
-        NettyClientHandlerDemo1 nettyClientHandlerDemo1 = new NettyClientHandlerDemo1();
 
         try {
             //创建客户端启动对象
@@ -41,7 +39,7 @@ public class NettyClientDemo4 {
                         protected void initChannel(SocketChannel channel) throws Exception {
                             //加入处理器
                             channel.pipeline()
-                                    .addLast(nettyClientHandlerDemo1);
+                                    .addLast(new NettyClientHandlerDemo());
                         }
                     });
 

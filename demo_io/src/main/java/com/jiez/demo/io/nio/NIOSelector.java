@@ -16,8 +16,7 @@ import java.util.Set;
  */
 public class NIOSelector {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-
+    public static void startServer() throws IOException {
         // 创建NIO ServerSocketChannel
         ServerSocketChannel serverSocket = ServerSocketChannel.open();
         serverSocket.socket().bind(new InetSocketAddress(9000));
@@ -28,7 +27,10 @@ public class NIOSelector {
         // 打开Selector处理Channel，即创建epoll
         Selector selector = Selector.open();
 
-        // 把ServerSocketChannel注册到selector上，并且selector对客户端accept连接操作感兴趣
+        /**
+         * ServerSocketChannel只能注册OP_ACCEPT
+         * 把ServerSocketChannel注册到selector上，并且selector对客户端accept连接操作感兴趣
+         */
         serverSocket.register(selector, SelectionKey.OP_ACCEPT);
 
         while (true) {
@@ -71,5 +73,31 @@ public class NIOSelector {
                 iterator.remove();
             }
         }
+    }
+
+    public static void startClient() throws IOException {
+        Selector selector = Selector.open();
+        SocketChannel socketChannel = SocketChannel.open();
+        socketChannel.configureBlocking(false);
+        socketChannel.connect(new InetSocketAddress("localhost", 9000));
+        socketChannel.register(selector, SelectionKey.OP_CONNECT);
+
+        while (true) {
+            // 可能会有空轮训bug
+            if (selector.select() == 0) {
+                continue;
+            }
+
+            Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
+            while (iterator.hasNext()) {
+                SelectionKey key = iterator.next();
+                if (key.isConnectable()) {
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        startClient();
     }
 }

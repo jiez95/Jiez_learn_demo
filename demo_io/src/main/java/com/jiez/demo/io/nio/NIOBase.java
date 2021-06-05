@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -20,8 +21,7 @@ public class NIOBase {
      */
     static List<SocketChannel> channelList = new ArrayList<>();
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-
+    public static void startServer() throws IOException {
         // 创建NIO ServerSocketChannel,与BIO的serverSocket类似
         ServerSocketChannel serverSocket = ServerSocketChannel.open();
         serverSocket.socket().bind(new InetSocketAddress(9000));
@@ -53,7 +53,7 @@ public class NIOBase {
                 int len = sc.read(byteBuffer);
                 // 如果有数据，把数据打印出来
                 if (len > 0) {
-                    System.out.println("接收到消息：" + new String(byteBuffer.array()));
+                    System.out.println("接收到消息：" + new String(byteBuffer.array(), Charset.forName("UTF-8")));
                 }
                 // 如果客户端断开，把socket从集合中去掉
                 else if (len == -1) {
@@ -62,5 +62,39 @@ public class NIOBase {
                 }
             }
         }
+    }
+
+    public static void startClient() throws IOException, InterruptedException {
+        SocketChannel socketChannel = SocketChannel.open();
+        socketChannel.configureBlocking(true);
+        socketChannel.connect(new InetSocketAddress("127.0.0.1", 9000));
+        ByteBuffer byteBuffer = ByteBuffer.allocate(128);
+        byteBuffer.put("Hello".getBytes(Charset.forName("UTF-8")));
+        // 需要切换模式
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        Thread.sleep(100000L);
+    }
+
+    public static void main(String[] args) throws Exception {
+        new Thread(() -> {
+            try {
+                startServer();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        Thread.sleep(2000L);
+
+        new Thread(() -> {
+            try {
+                startClient();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 }

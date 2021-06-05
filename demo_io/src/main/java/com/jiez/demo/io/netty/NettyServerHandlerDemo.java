@@ -11,7 +11,7 @@ import io.netty.util.CharsetUtil;
  * @author : jiez
  * @date : 2021/5/27 20:26
  */
-public class NettyServerHandlerDemo1 extends ChannelInboundHandlerAdapter {
+public class NettyServerHandlerDemo extends ChannelInboundHandlerAdapter {
 
     /**
      * 读取客户端发送的数据

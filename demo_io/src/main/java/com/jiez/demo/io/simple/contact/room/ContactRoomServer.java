@@ -1,17 +1,17 @@
 package com.jiez.demo.io.simple.contact.room;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.util.CharsetUtil;
-import org.springframework.util.StringUtils;
+import io.netty.handler.codec.serialization.ClassResolvers;
+import io.netty.handler.codec.serialization.ObjectDecoder;
+import io.netty.handler.codec.serialization.ObjectEncoder;
 
-import java.net.SocketAddress;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author : jiez
@@ -33,7 +33,66 @@ public class ContactRoomServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast(new ContactRoomServerNettyHandler());
+                            ch.pipeline()
+                                    // 添加ChannelInboundHandlerAdapter, 处理数据流入
+
+                                    /**
+                                     * 由于UDP/TCP有数据包粘包/拆包现象
+                                     * 因此要定义解包器，保证收到的数据是正确的
+                                     */
+
+                                    /**
+                                     * 回车换行分包
+                                     *
+                                     * @param 1. 设置最大长度
+                                     */
+//                                    .addLast(new LineBasedFrameDecoder(1000))
+
+                                    /**
+                                     * 特殊分隔符分包
+                                     *
+                                     * @param 1. 设置最大长度
+                                     * @param 2. 设置分割符的ByteBuff
+                                     */
+//                                    .addLast(new DelimiterBasedFrameDecoder(1000, Unpooled.copiedBuffer("_".getBytes())))
+
+                                    /**
+                                     * 固定长度报文来分包
+                                     *
+                                     * @param 1. 设置最大长度
+                                     * @param 2. 设置分割符的ByteBuff
+                                     */
+//                                    .addLast(new FixedLengthFrameDecoder(1000));
+
+                                    /**
+                                     * 自定义分包处理器
+                                     */
+
+                                    /**
+                                     * 添加解码器
+                                     * 字符串解码器
+                                     * 对象解码器（JDK序列化）
+                                     * protobuf解码器
+                                     * protostuff解码器
+                                     */
+//                                    .addLast(new StringDecoder())
+                                    .addLast(new ObjectDecoder(10240, ClassResolvers.weakCachingConcurrentResolver(this.getClass().getClassLoader())))
+
+                                    // 添加数据处理器
+                                    .addLast(new ContactRoomServerNettyHandler())
+
+                                    // 添加ChannelOutboundHandlerAdapter，处理数据流出
+
+                                    /**
+                                     * 添加编码器
+                                     * 字符串编码器
+                                     * 对象编码器（JDK序列化）
+                                     * protobuf编码器
+                                     * protostuff编码器
+                                     */
+//                                    .addLast(new StringEncoder())
+                                    .addLast(new ObjectEncoder())
+                            ;
                         }
                     });
 
@@ -64,8 +123,7 @@ class ContactRoomServerNettyHandler extends ChannelInboundHandlerAdapter {
                 continue;
             }
             Channel otherChannel = channelMap.get(key);
-            ByteBuf buf = Unpooled.copiedBuffer(String.format(messageFormat, remoteAddress), CharsetUtil.UTF_8);
-            otherChannel.writeAndFlush(buf);
+            otherChannel.writeAndFlush(String.format(messageFormat, remoteAddress));
         }
     }
 
@@ -80,15 +138,12 @@ class ContactRoomServerNettyHandler extends ChannelInboundHandlerAdapter {
                 continue;
             }
             Channel otherChannel = channelMap.get(key);
-            ByteBuf buf = Unpooled.copiedBuffer(String.format(messageFormat, remoteAddress), CharsetUtil.UTF_8);
-            otherChannel.writeAndFlush(buf);
+            otherChannel.writeAndFlush(String.format(messageFormat, remoteAddress));
         }
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        String message = ((ByteBuf) msg).toString(CharsetUtil.UTF_8);
-
         Channel channel = ctx.channel();
         String remoteAddress = String.valueOf(channel.remoteAddress());
 
@@ -98,9 +153,8 @@ class ContactRoomServerNettyHandler extends ChannelInboundHandlerAdapter {
                 continue;
             }
             Channel otherChannel = channelMap.get(key);
-            ByteBuf buf = Unpooled.copiedBuffer(String.format(messageFormat, remoteAddress, message), CharsetUtil.UTF_8);
-            otherChannel.writeAndFlush(buf);
+            otherChannel.writeAndFlush(String.format(messageFormat, remoteAddress, msg));
         }
-        super.channelRead(ctx, msg);
     }
 }
+
