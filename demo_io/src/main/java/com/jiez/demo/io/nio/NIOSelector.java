@@ -7,6 +7,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -35,7 +36,8 @@ public class NIOSelector {
 
         while (true) {
             // 阻塞等待需要处理的事件发生
-            selector.select();
+//            selector.select();
+            System.out.println(selector.selectNow());
 
             // 获取selector中注册的全部事件的 SelectionKey 实例
             Set<SelectionKey> selectionKeys = selector.selectedKeys();
@@ -72,32 +74,65 @@ public class NIOSelector {
                 //从事件集合里删除本次处理的key，防止下次select重复处理
                 iterator.remove();
             }
+
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+            }
         }
     }
 
     public static void startClient() throws IOException {
-        Selector selector = Selector.open();
         SocketChannel socketChannel = SocketChannel.open();
-        socketChannel.configureBlocking(false);
+        // 异步，所以是非阻塞
+        socketChannel.configureBlocking(true);
         socketChannel.connect(new InetSocketAddress("localhost", 9000));
-        socketChannel.register(selector, SelectionKey.OP_CONNECT);
-
-        while (true) {
-            // 可能会有空轮训bug
-            if (selector.select() == 0) {
-                continue;
-            }
-
-            Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
-            while (iterator.hasNext()) {
-                SelectionKey key = iterator.next();
-                if (key.isConnectable()) {
-                }
-            }
-        }
+        System.out.println("发送成功");
+        ByteBuffer byteBuffer = ByteBuffer.allocate(128);
+        byteBuffer.put("Hello".getBytes(Charset.forName("UTF-8")));
+        // 需要切换模式
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
     }
 
     public static void main(String[] args) throws Exception {
-        startClient();
+        /*
+        new Thread(() -> {
+            try {
+                startServer();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        Thread.sleep(2000L);
+
+        new Thread(() -> {
+            try {
+                startClient();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+         */
+
+        int OP_READ = 1 << 0;
+        int OP_WRITE = 1 << 2;
+        int OP_CONNECT = 1 << 3;
+        int OP_ACCEPT = 1 << 4;
+//
+        System.out.println(OP_READ);
+        System.out.println(OP_WRITE);
+        System.out.println(OP_CONNECT);
+        System.out.println(OP_ACCEPT);
+
+        int readyOps = OP_ACCEPT;
+
+        System.out.println(readyOps & SelectionKey.OP_CONNECT);
+
+        System.out.println(readyOps & SelectionKey.OP_WRITE);
+
+        System.out.println((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)));
+
     }
 }

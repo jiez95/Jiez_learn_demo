@@ -1,13 +1,12 @@
 package com.jiez.demo.io.simple.contact.room;
 
+import com.jiez.demo.io.simple.contact.room.frame.CarryLengthFrameDecoder;
+import com.jiez.demo.io.simple.contact.room.serialize.protostuff.ProtostuffDecoder2;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.serialization.ClassResolvers;
-import io.netty.handler.codec.serialization.ObjectDecoder;
-import io.netty.handler.codec.serialization.ObjectEncoder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +21,7 @@ public class ContactRoomServer {
     public static void main(String[] args) throws InterruptedException {
         // 服务端创建两个线程组, 一个是Boss线程组，一个是work线程组
         EventLoopGroup bossEventLoopGroup = new NioEventLoopGroup(1);
-        EventLoopGroup workerEventLoopGroup = new NioEventLoopGroup(8);
+        EventLoopGroup workerEventLoopGroup = new NioEventLoopGroup(1);
 
         try {
             // 构建Netty模型
@@ -34,69 +33,58 @@ public class ContactRoomServer {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
                             ch.pipeline()
-                                    // 添加ChannelInboundHandlerAdapter, 处理数据流入
 
                                     /**
-                                     * 由于UDP/TCP有数据包粘包/拆包现象
-                                     * 因此要定义解包器，保证收到的数据是正确的
+                                     * 添加ChannelInboundHandlerAdapter(处理数据流入)
+                                     * 按添加顺序遍历执行
                                      */
 
-                                    /**
-                                     * 回车换行分包
-                                     *
-                                     * @param 1. 设置最大长度
-                                     */
+                                    // 粘包拆包处理器 - 回车换行
 //                                    .addLast(new LineBasedFrameDecoder(1000))
+                                    // 粘包拆包处理器 - 特殊分隔符
+//                                    .addLast(new c(1000, Unpooled.copiedBuffer("_".getBytes())))
+                                    // 粘包拆包处理器 - 固定长度
+//                                    .addLast(new FixedLengthFrameDecoder(1000))
+                                    // 粘包拆包处理器 - 头部带数据长度处理
+                                    .addLast(new CarryLengthFrameDecoder())
 
-                                    /**
-                                     * 特殊分隔符分包
-                                     *
-                                     * @param 1. 设置最大长度
-                                     * @param 2. 设置分割符的ByteBuff
-                                     */
-//                                    .addLast(new DelimiterBasedFrameDecoder(1000, Unpooled.copiedBuffer("_".getBytes())))
-
-                                    /**
-                                     * 固定长度报文来分包
-                                     *
-                                     * @param 1. 设置最大长度
-                                     * @param 2. 设置分割符的ByteBuff
-                                     */
-//                                    .addLast(new FixedLengthFrameDecoder(1000));
-
-                                    /**
-                                     * 自定义分包处理器
-                                     */
-
-                                    /**
-                                     * 添加解码器
-                                     * 字符串解码器
-                                     * 对象解码器（JDK序列化）
-                                     * protobuf解码器
-                                     * protostuff解码器
-                                     */
+                                    // 字符串解码器
 //                                    .addLast(new StringDecoder())
-                                    .addLast(new ObjectDecoder(10240, ClassResolvers.weakCachingConcurrentResolver(this.getClass().getClassLoader())))
+                                    // 对象解码器（JDK序列化）
+//                                    .addLast(new ObjectDecoder(10240, ClassResolvers.weakCachingConcurrentResolver(this.getClass().getClassLoader())))
+                                    // protobuf解码器
+//                                    .addLast(new ProtobufDecoder())
+                                    // protostuff解码器
+                                    .addLast(new ProtostuffDecoder2())
 
-                                    // 添加数据处理器
+                                    // 添加业务处理器
                                     .addLast(new ContactRoomServerNettyHandler())
 
-                                    // 添加ChannelOutboundHandlerAdapter，处理数据流出
+                                    // 心跳处理器(IdleStateHandler(long readerIdleTime, long writerIdleTime, long allIdleTime,TimeUnit unit) )
+//                                    .addLast(new IdleStateHandler(3, 0, 0, TimeUnit.SECONDS))
+
 
                                     /**
-                                     * 添加编码器
-                                     * 字符串编码器
-                                     * 对象编码器（JDK序列化）
-                                     * protobuf编码器
-                                     * protostuff编码器
+                                     * 添加ChannelOutboundHandlerAdapter(处理数据流出)
+                                     * 按添加顺序的倒序遍历执行
                                      */
+
+                                    // 粘包拆包处理器 - 头部带数据长度处理
+//                                    .addLast(new CarryLengthFrameEncoder())
+
+                                    // 字符串编码器
 //                                    .addLast(new StringEncoder())
-                                    .addLast(new ObjectEncoder())
+                                    // 对象编码器（JDK序列化）
+//                                    .addLast(new ObjectEncoder())
+                                    // protobuf编码器
+//                                    .addLast(new ProtobufEncoder())
+                                    // protostuff编码器
+//                                    .addLast(new ProtostuffEncoder2());
                             ;
                         }
                     });
 
-            ChannelFuture channelFuture = serverBootstrap.bind(9000).sync();
+            ChannelFuture channelFuture = serverBootstrap.bind(9001).sync();
 
             channelFuture.channel().closeFuture().sync();
 
@@ -118,6 +106,7 @@ class ContactRoomServerNettyHandler extends ChannelInboundHandlerAdapter {
         String remoteAddress = String.valueOf(channel.remoteAddress());
         channelMap.put(remoteAddress, channel);
         String messageFormat = "客户端[%s]: 上线了";
+        System.out.println(String.format(messageFormat, remoteAddress));
         for (String key : channelMap.keySet()) {
             if (Objects.equals(key, remoteAddress)) {
                 continue;
@@ -133,6 +122,7 @@ class ContactRoomServerNettyHandler extends ChannelInboundHandlerAdapter {
         String remoteAddress = String.valueOf(channel.remoteAddress());
         channelMap.remove(remoteAddress);
         String messageFormat = "客户端[%s]下线了";
+        System.out.println(String.format(messageFormat, remoteAddress));
         for (String key : channelMap.keySet()) {
             if (Objects.equals(key, remoteAddress)) {
                 continue;
@@ -148,6 +138,7 @@ class ContactRoomServerNettyHandler extends ChannelInboundHandlerAdapter {
         String remoteAddress = String.valueOf(channel.remoteAddress());
 
         String messageFormat = "客户端[%s]: %s";
+        System.out.println(String.format(messageFormat, remoteAddress, msg));
         for (String key : channelMap.keySet()) {
             if (Objects.equals(key, remoteAddress)) {
                 continue;
@@ -157,4 +148,3 @@ class ContactRoomServerNettyHandler extends ChannelInboundHandlerAdapter {
         }
     }
 }
-

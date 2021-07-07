@@ -1,12 +1,11 @@
 package com.jiez.demo.io.simple.contact.room;
 
+import com.jiez.demo.io.simple.contact.room.frame.CarryLengthFrameEncoder;
+import com.jiez.demo.io.simple.contact.room.serialize.protostuff.ProtostuffEncoder2;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.serialization.ClassResolvers;
-import io.netty.handler.codec.serialization.ObjectDecoder;
-import io.netty.handler.codec.serialization.ObjectEncoder;
 
 /**
  * @author : jiez
@@ -25,19 +24,23 @@ public class ContactRoomClient {
                     @Override
                     protected void initChannel(Channel ch) {
                         ch.pipeline()
-//                                .addLast(new StringDecoder())
-                                .addLast(new ObjectDecoder(10240, ClassResolvers.weakCachingConcurrentResolver(this.getClass().getClassLoader())))
-                                .addLast(new ContactRoomClientNettyHandler())
+//                                .addLast(new ObjectDecoder(10240, ClassResolvers.weakCachingConcurrentResolver(this.getClass().getClassLoader())))
+//                                .addLast(new ProtobufEncoder())
+                                .addLast(new CarryLengthFrameEncoder())
+                                .addLast(new ProtostuffEncoder2())
 
-//                                .addLast(new StringEncoder())
-                                .addLast(new ObjectEncoder())
+//                                .addLast(new ObjectEncoder())
+//                                 .addLast(new ProtobufDecoder())
+//                                .addLast(new CarryLengthFrameDecoder())
+//                                .addLast(new ProtostuffDecoder2())
+//                                .addLast(new ContactRoomClientNettyHandler())
                         ;
                     }
                 })
                 ;
 
         try {
-            ChannelFuture channelFuture = bootstrap.connect("127.0.0.1", 9000);
+            ChannelFuture channelFuture = bootstrap.connect("127.0.0.1", 9001);
             channelFuture.sync();
 
             Channel channel = channelFuture.channel();
@@ -53,10 +56,19 @@ public class ContactRoomClient {
             /**
              * 测试 使用ObjectDecoder/ObjectEncoder 发送对象
              */
-            MessageDto messageDto = new MessageDto();
-            messageDto.setId("123");
-            messageDto.setName("321");
-            channel.writeAndFlush(messageDto);
+            for (int i = 0; i < 1000; i++) {
+                MessageDto messageDto = new MessageDto();
+                messageDto.setId("123");
+                messageDto.setName("321");
+                channel.write(messageDto);
+            }
+            channel.flush();
+            /*
+            ProtobufMessage.protobufMessage protoMsg = ProtobufMessage.protobufMessage.newBuilder().setContent("test").setIp("123321").build();
+            channel.writeAndFlush(protoMsg);
+             */
+
+            Thread.sleep(100000L);
 
         } finally {
             workEventLoopGroup.shutdownGracefully();
